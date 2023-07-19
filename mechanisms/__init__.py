@@ -472,7 +472,7 @@ class DefendTokenSurvey(Page):
         if player.round_number == 1:
             return None
         else:
-            return 5000 #45
+            return 45
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -502,7 +502,7 @@ class DefendTokenSurvey(Page):
 
 
 class DefendTokenWaitPage(WaitPage):
-    timeout_seconds = 10000 #80 
+    timeout_seconds = 80 
     timer_text = 'Please wait for round to start'
 
     @staticmethod
