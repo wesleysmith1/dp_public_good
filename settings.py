@@ -5,9 +5,21 @@ SESSION_CONFIGS = [
     dict(
         name='mechanisms',
         display_name="dp mechanisms",
-        app_sequence=['mechanisms'],
+        app_sequence=['mechanisms', 'wtp_survey', 'payment'],
         num_demo_participants=4,
     ),
+    dict(
+        name='wtp_survey',
+        display_name="wtp",
+        app_sequence=['wtp_survey'],
+        num_demo_participants=1,
+    ),
+    dict(
+        name='payment',
+        display_name='payment',
+        app_sequence=['payment',],
+        num_demo_participants=1,
+    )
 ]
 
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
@@ -19,8 +31,8 @@ SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00, participation_fee=0.00, doc=""
 )
 
-PARTICIPANT_FIELDS = []
-SESSION_FIELDS = []
+PARTICIPANT_FIELDS = ['group_id']
+SESSION_FIELDS = ['session_date', 'session_start']
 
 # ISO-639 code
 # for example: de, fr, ja, ko, zh-hans

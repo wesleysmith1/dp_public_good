@@ -43,6 +43,8 @@ let oglComponent = {
         }
     },
     created: function() {
+        this.numberTokens = this.playerQuantity
+        this.inputPlaceholder = this.playerQuantity
         // Decimal.set({ precision: 8 })
         this.paymentOptions = this.paymentMax * 2;
 
@@ -65,7 +67,7 @@ let oglComponent = {
             if (this.numberTokens >= this.omega) {
                 return;
             }
-            this.numberTokens += 1
+            this.numberTokens = parseInt(this.numberTokens)+ 1
             this.inputPlaceholder = this.numberTokens
             this.inputChange()
         },

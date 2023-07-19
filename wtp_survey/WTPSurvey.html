@@ -1,0 +1,67 @@
+{{ block title }}
+    Survey
+{{ endblock }}
+
+{{ block content }}
+
+    <style>
+        .r {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+    </style>
+
+    <p>
+        How much are you willing to pay for 5, 10, 15, 20, 25, assuming your starting points were 3000.
+    </p>
+
+    <hr>
+
+    <div class="r">
+        <div>Quantity</div>
+        <div>How much you would pay?</div>
+    </div>
+
+    <hr>
+
+    <div class="r">
+        <div>5</div>
+        <input type="number" name="wtp5" required="" id="id_wtp5" class="form-control">
+    </div>
+
+    <hr>
+
+    <div class="r">
+        <div>10</div>
+        <input type="number" name="wtp10" required="" id="id_wtp10" class="form-control">
+    </div>
+
+    <hr>
+
+    <div class="r">
+        <div>15</div>
+        <input type="number" name="wtp15" required="" id="id_wtp15" class="form-control">
+    </div>
+
+    <hr>
+
+    <div class="r">
+        <div>20</div>
+        <input type="number" name="wtp20" required="" id="id_wtp20" class="form-control">
+    </div>
+
+    <hr>
+
+    <div class="r">
+        <div>25</div>
+        <input type="number" name="wtp25" required="" id="id_wtp25" class="form-control">
+    </div>
+
+    <hr>
+
+
+    {{ next_button }}
+{{ endblock }}
+
+

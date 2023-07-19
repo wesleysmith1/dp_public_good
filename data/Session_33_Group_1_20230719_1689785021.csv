@@ -1,0 +1,2 @@
+group_id,participants,player_id,round_number,quantity,group_commodities,starting_points,costs,utilities,individual_commodities,nonparticipant_taxes,created,treatment,gamma,price,created_withinround
+1,"[1, 2]",1,1,1,"[1, 0, 0, 0]","[1600.0, 2000.0, 2000.0, 2400.0]","[103.75, 103.75, 96.25, 96.25]","[38.68139087468288, 43.54595273960601, 43.63198368169845, 47.997395762686956]","[1496.25, 1896.25, 1903.75, 2303.75]","[0.0, 0.0, 96.25, 96.25]",19/07/2023 10:43:59,MGL,15,400,2.5034472942352295

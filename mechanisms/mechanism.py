@@ -83,6 +83,8 @@ def calculate_cost(N, gam, E, e, qq, n_id, mechanism="OGL", r=0):
     n = 4 if mechanism == "OGL" else 2
     cost_baseshare = qq/N*sum(E) - r
     cost_theta = np.array([])
+
+    # print(f"E {E}, e {e}")
     
     i = list(E).index(e)
         
