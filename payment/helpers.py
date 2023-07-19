@@ -56,7 +56,6 @@ def generate_payouts(group):
         player.participant_code = player.participant.code
         player.id_in_session = player.participant.id_in_session
         player.payoff = payout
-        player.save()
 
 
 def generate_survey_csv(group):

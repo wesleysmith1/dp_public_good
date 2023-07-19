@@ -176,6 +176,17 @@ def get_round_incomes(round_number):
     return C.high_incomes if round_number % 2 == 1 else C.low_incomes
 
 def creating_session(subsession: Subsession):
+
+    subsession.session.vars['session_start'] = time.time()
+    subsession.session.vars['session_date'] = datetime.datetime.today().strftime('%Y%m%d')
+
+    if subsession.round_number == 1:
+        index = 1
+        for group in subsession.get_groups():
+            for player in group.get_players():
+                player.participant.vars['group_id'] = index
+            index += 1
+
     for g in subsession.get_groups():
         for player in g.get_players():
 
@@ -264,12 +275,25 @@ class DefendTokenSurvey(Page):
 
                 MechanismInput.record(quantity, player.id, player.id_in_group, player.group_id, player.round_number)
 
-                return {
-                    0: {
+                n_id = [p.id_in_group for p in player.group.get_players() if p.mechanism_participant]
+
+                data = {
                         'type': 'quantity_update',
                         'player_update': {player.id: quantity},
                     }
-                }
+                
+                quantity_data = {}
+                for id in n_id:
+                    quantity_data[id] = data
+
+                return quantity_data
+
+                # return {
+                #     0: {
+                #         'type': 'quantity_update',
+                #         'player_update': {player.id: quantity},
+                #     }
+                # }
     
         elif data.get('cost'):
 
@@ -370,7 +394,7 @@ class DefendTokenSurvey(Page):
                     plus_quantity = quantity + 1
                     plus_quantities = quantities.copy()
                     plus_quantities[player.id_in_group-1] = plus_quantity
-                    # print(f"{C.N}, {C.gamma}, {plus_quantities}, {plus_quantity}, {C.q}, {n_id}, {C.treatment}")
+                    # print(f"PLUS ID{player.id_in_group}, {plus_quantities}, {plus_quantity}, {n_id}")
                     plus = calculate_cost(
                             C.N, 
                             C.gamma, 
@@ -387,7 +411,7 @@ class DefendTokenSurvey(Page):
                     minus_quantity = quantity - 1
                     minus_quantities = quantities.copy()
                     minus_quantities[player.id_in_group-1] = minus_quantity
-                    # print(f"{C.N}, {C.gamma}, {plus_quantities}, {minus_quantity}, {C.q,n_id}, {C.treatment}")
+                    # print(f"MINUS ID{player.id_in_group}, {plus_quantities}, {minus_quantity}, {n_id}")
                     minus = calculate_cost(
                             C.N, 
                             C.gamma, 
@@ -400,6 +424,7 @@ class DefendTokenSurvey(Page):
                     
                     # print(f"MINUS {minus}")
 
+                # print(f"COST ID{player.id_in_group}, {plus_quantities}, {quantity}, {n_id}")
                 cost = calculate_cost(C.N, C.gamma, quantities, quantity, C.q, n_id, mechanism=C.treatment)
 
                 # print(f"====================GID: {group_id}")
@@ -426,6 +451,13 @@ class DefendTokenSurvey(Page):
 
                 cost2 = utilities['participant_costs'][player.id_in_group-1]
 
+                data = {'type': 'cost_update',
+                        'cost': cost,
+                        'plus': plus,
+                        'minus': minus,
+                        'utility': utility,
+                        'cost2': cost2,}
+
                 return { player.id_in_group: {
                         'type': 'cost_update',
                         'cost': cost,
@@ -440,7 +472,7 @@ class DefendTokenSurvey(Page):
         if player.round_number == 1:
             return None
         else:
-            return 45
+            return 5000 #45
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -470,7 +502,7 @@ class DefendTokenSurvey(Page):
 
 
 class DefendTokenWaitPage(WaitPage):
-    timeout_seconds = 80 
+    timeout_seconds = 10000 #80 
     timer_text = 'Please wait for round to start'
 
     @staticmethod
@@ -533,7 +565,7 @@ class DefendTokenWaitPage(WaitPage):
                 list(quantities), 
                 r=C.r,
                 betai = list(balances),
-                n_id = list(participants.values_list('id_in_group', flat=True)),
+                n_id = [p.id_in_group for p in group.get_players() if p.mechanism_participant],
                 mechanism = C.treatment
                 )
 
@@ -561,9 +593,11 @@ class DefendTokenWaitPage(WaitPage):
         else:
             file_path = 'data/'
 
-        mechanism_inputs = MechanismInput.filter(group=group).order_by('created')
+        mechanism_inputs = MechanismInput.filter(group=group)
+        mechanism_inputs = sorted(mechanism_inputs, key=lambda x: x.created)
 
-        n_id = list(participants.values_list('id_in_group', flat=True))
+        # n_id = list(participants.values_list('id_in_group', flat=True))
+        n_id = [p.id_in_group for p in group.get_players() if p.mechanism_participant]
         # balances = get_round_incomes(self.round_number)
 
         start = math.floor(session_start)
@@ -665,6 +699,7 @@ page_sequence = [
         StartModal,
         Wait,
         DefendTokenSurvey,
+        DefendTokenWaitPage,
         Wait,
         EndModal,
         ResultsWaitPage,
