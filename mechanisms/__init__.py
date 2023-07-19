@@ -12,7 +12,7 @@ Your app description
 class C(BaseConstants):
     NAME_IN_URL = 'main'
     PLAYERS_PER_GROUP = 4
-    NUM_ROUNDS = 1
+    NUM_ROUNDS = 25
 
     # mechanism parameters ================================================
 
@@ -71,7 +71,7 @@ class C(BaseConstants):
         [3,4],
         [2,4],
         [2,4],
-        
+
     ]
 
 
@@ -100,10 +100,11 @@ class Player(BasePlayer):
     your_cost = models.FloatField(initial=0)
     mechanism_participant = models.BooleanField(initial=False)
     nonparticipant_tax = models.FloatField(initial=0)
-    your_individual_quantity = models.FloatField()
-    utility = models.FloatField()
+    your_individual_quantity = models.FloatField(initial=0)
+    utility = models.FloatField(initial=0)
     participant_rebate = models.IntegerField(initial=0)
     # ============================================
+    balance = models.FloatField(initial=0)
 
 
 class MechanismInput(ExtraModel):
@@ -117,7 +118,7 @@ class MechanismInput(ExtraModel):
     @classmethod
     def record(cls, quantity, player_id, id_in_group, group_id, round_number):
         # update this os it is more accurate and gives player and participant information
-        MechanismInput.create(player_id=player_id, id_in_group=id_in_group, group_id=group_id, round_number=round_number, quantity=quantity, created=time.now())
+        MechanismInput.create(player_id=player_id, id_in_group=id_in_group, group_id=group_id, round_number=round_number, quantity=quantity, created=time.time())
 
     @classmethod
     def csvHeader(cls):
@@ -189,19 +190,20 @@ def creating_session(subsession: Subsession):
 
 # PAGES
 class SurveyInitWait(WaitPage):
-    def after_all_players_arrive(self):
+    @staticmethod
+    def after_all_players_arrive(group: Group):
         """select players that will participate in the mechanism."""
 
-        policing = self.session.config['include_policing']
-        if policing:
-            selected_players = Player.objects.filter(group_id=self.group.pk).exclude(id_in_group=1)
-        else:
-            selected_players = Player.objects.filter(group_id=self.group.pk)
+        # policing = self.session.config['include_policing']
+        # if policing:
+        #     selected_players = Player.objects.filter(group_id=self.group.pk).exclude(id_in_group=1)
+        # else:
+        selected_players = group.get_players()
 
         if C.treatment == "OGL":
             selected_ids = [1,2,3,4]
         else:
-            selected_ids = C.sampling_matrix[self.round_number - 1]
+            selected_ids = C.sampling_matrix[group.round_number - 1]
 
         for p in selected_players:
             # SurveyResponse.objects.create(group=self.group, player=p, response=dict(), participant=True)
@@ -217,41 +219,248 @@ class SurveyInitWait(WaitPage):
 class StartModal(Page):
     timeout_seconds = 5
 
-    def vars_for_template(self):
+    @staticmethod
+    def vars_for_template(player: Player):
         return dict(
-            selected=self.player.mechanism_participant,
-            your_cost=self.player.your_cost,
+            selected=player.mechanism_participant,
+            your_cost=player.your_cost,
             hide_selected_text=C.N == C.n,
         )
     
 
 class DefendTokenSurvey(Page):
 
-    def get_timeout_seconds(self):
-        if self.round_number == 1:
+    @staticmethod
+    def live_method(player: Player, data):
+
+        if data.get('quantity'):
+            quantity = int(data['quantity']['quantity'])
+            player.quantity = quantity
+
+            if player.round_number == 1 and C.treatment != 'OGL':
+                # in nonOGL tutorial players are split into two groups
+
+                data = {
+                        'type': 'quantity_update',
+                        'player_update': {player.id: quantity},
+                    }
+
+                if player.id_in_group in [1,2]:
+
+                    return {1: data, 2: data}
+
+                elif player.id_in_group in [3,4]:
+                    
+                    return {3: data, 4: data}
+            
+            else:
+
+                # TODO: exclude id 1 when policing is included
+                # TODO; this needs to map to specific players when only some players are selected for mechanism
+                # quantities = Player.objects.filter(group_id=group_id).order_by('id_in_group').values_list('quantity', flat=True)
+                # costs = calculate_costs(Constants.N, Constants.gamma, quantities, Constants.q, mechanism="OGL")
+                
+                # res = {i+1: costs[i] for i in range(len(costs))}
+
+                MechanismInput.record(quantity, player.id, player.id_in_group, player.group_id, player.round_number)
+
+                return {
+                    0: {
+                        'type': 'quantity_update',
+                        'player_update': {player.id: quantity},
+                    }
+                }
+    
+        elif data.get('cost'):
+
+            if player.round_number == 1:
+                # tutorial code
+                players = player.group.get_players() # this is ordered by id_in_group
+                quantities = [p.quantity for p in players]
+
+                quantity = player.quantity
+                # player_index = quantities.index(quantity) # i think this is breaking in the tutorial round
+
+                if C.treatment != "OGL":
+                    if player.id_in_group < 3:
+                        n_id = [1,2]
+                    else:
+                        n_id = [3,4]
+                else:
+                    n_id = [1,2,3,4]
+
+                plus = None
+                minus = None
+                
+                if quantity < C.omega:
+                    plus_quantity = quantity + 1
+                    plus_quantities = quantities.copy()
+                    plus_quantities[player.id_in_group-1] = plus_quantity
+                    plus = calculate_cost(
+                            C.N, 
+                            C.gamma, 
+                            plus_quantities, 
+                            plus_quantity, 
+                            C.q, 
+                            n_id,
+                            mechanism=C.treatment,
+                        )
+                
+                if quantity > 0:
+                    minus_quantity = quantity - 1
+                    minus_quantities = quantities.copy()
+                    minus_quantities[player.id_in_group-1] = minus_quantity
+                    minus = calculate_cost(
+                            C.N, 
+                            C.gamma, 
+                            minus_quantities, 
+                            minus_quantity, 
+                            C.q, 
+                            n_id,
+                            mechanism=C.treatment,
+                        )
+
+                cost = calculate_cost(C.N, C.gamma, quantities, quantity, C.q, n_id, mechanism=C.treatment)
+
+                #=====================================
+
+                balances = [p.balance for p in players]
+
+                utilities = calculate_utility(
+                        C.N,
+                        C.q,
+                        C.gamma,
+                        list(quantities), 
+                        r=C.r,
+                        betai = list(balances),
+                        n_id = n_id,
+                        mechanism = C.treatment
+                        )
+                
+                utility = utilities['utility'][player.id_in_group-1]
+
+                cost2 = utilities['participant_costs'][player.id_in_group-1]
+
+                #=====================================
+
+                return { player.id_in_group: {
+                        'type': 'cost_update',
+                        'cost': cost,
+                        'plus': plus,
+                        'minus': minus,
+                        'utility': utility,
+                        'cost2': cost2,
+                    }}
+            
+            else:
+                # non tutorial code
+                players = player.group.get_players() # this is ordered by id_in_group
+                quantities = [p.quantity for p in players]
+
+                # participants = Player.filter(group=player.group, mechanism_participant=True)
+                participants = [p for p in player.group.get_players() if p.mechanism_participant]
+                n_id = [p.id_in_group for p in participants]
+
+                quantity = player.quantity
+
+                plus = None
+                minus = None
+
+                if quantity < C.omega:
+                    plus_quantity = quantity + 1
+                    plus_quantities = quantities.copy()
+                    plus_quantities[player.id_in_group-1] = plus_quantity
+                    # print(f"{C.N}, {C.gamma}, {plus_quantities}, {plus_quantity}, {C.q}, {n_id}, {C.treatment}")
+                    plus = calculate_cost(
+                            C.N, 
+                            C.gamma, 
+                            plus_quantities, 
+                            plus_quantity, 
+                            C.q, 
+                            n_id,
+                            mechanism=C.treatment
+                        )
+                    
+                    # print(f"PLUS {plus}")
+                
+                if quantity > 0:
+                    minus_quantity = quantity - 1
+                    minus_quantities = quantities.copy()
+                    minus_quantities[player.id_in_group-1] = minus_quantity
+                    # print(f"{C.N}, {C.gamma}, {plus_quantities}, {minus_quantity}, {C.q,n_id}, {C.treatment}")
+                    minus = calculate_cost(
+                            C.N, 
+                            C.gamma, 
+                            minus_quantities, 
+                            minus_quantity, 
+                            C.q, 
+                            n_id,
+                            mechanism=C.treatment
+                        )
+                    
+                    # print(f"MINUS {minus}")
+
+                cost = calculate_cost(C.N, C.gamma, quantities, quantity, C.q, n_id, mechanism=C.treatment)
+
+                # print(f"====================GID: {group_id}")
+
+                balances = [p.balance for p in players]
+
+                # print(f"BALANCES {balances}")
+
+                # print(balances)
+                utilities = calculate_utility(
+                        C.N,
+                        C.q,
+                        C.gamma,
+                        list(quantities), 
+                        r=C.r,
+                        betai = list(balances),
+                        n_id = n_id,
+                        mechanism = C.treatment
+                        )
+
+                # print(f"UTILITIES {utilities}")
+                
+                utility = utilities['utility'][player.id_in_group-1]
+
+                cost2 = utilities['participant_costs'][player.id_in_group-1]
+
+                return { player.id_in_group: {
+                        'type': 'cost_update',
+                        'cost': cost,
+                        'plus': plus,
+                        'minus': minus,
+                        'utility': utility,
+                        'cost2': cost2,
+                    }}
+
+    @staticmethod
+    def get_timeout_seconds(player: Player):
+        if player.round_number == 1:
             return None
         else:
             return 45
 
-    def vars_for_template(self):
+    @staticmethod
+    def vars_for_template(player: Player):
 
-        if self.player.id_in_group == 1 and not self.group.mechanism_start:
-            self.group.mechanism_start = time.now()
+        if player.id_in_group == 1 and not player.group.field_maybe_none('mechanism_start'):
+            player.group.mechanism_start = time.time()
 
         constants = dict(
             N=C.N,
             n=C.n,
             q=C.q,
             gamma=C.gamma,
-            beta=C.beta,
             r=C.r,
         )
 
         template_vars = dict(
-            selected=self.player.mechanism_participant,
+            selected=player.mechanism_participant,
             dt_range=C.dt_range,
             dt_payment_max=C.dt_payment_max,
-            big_n=C.players_per_group-1,
+            big_n=C.PLAYERS_PER_GROUP-1,
             gamma=C.gamma,
             omega=C.omega,
             constants=constants,
@@ -271,11 +480,11 @@ class DefendTokenWaitPage(WaitPage):
         until after round, when tax is recalculated to include costs accrued during round"""
 
         # calculate fields for all players
-        quantities = Player.objects.filter(group_id=group.id).order_by('id_in_group').values_list('quantity', flat=True)
-        balances = Player.objects.filter(group_id=group.id).order_by('id_in_group').values_list('balance', flat=True)
+        quantities = [p.quantity for p in group.get_players()]
+        balances = [p.balance for p in group.get_players()]
 
-        participants = Player.objects.filter(group_id=group.id, mechanism_participant=True)
-        nonparticipants = Player.objects.filter(group_id=group.id, mechanism_participant=False)
+        participants = [p for p in group.get_players() if p.mechanism_participant]
+        nonparticipants = [p for p in group.get_players() if not p.mechanism_participant]
 
         g_id = participants[0].participant.vars['group_id']
 
@@ -352,7 +561,7 @@ class DefendTokenWaitPage(WaitPage):
         else:
             file_path = 'data/'
 
-        mechanism_inputs = MechanismInput.objects.filter(group_id=group.id).order_by('created')
+        mechanism_inputs = MechanismInput.filter(group=group).order_by('created')
 
         n_id = list(participants.values_list('id_in_group', flat=True))
         # balances = get_round_incomes(self.round_number)
@@ -410,7 +619,7 @@ class EndModal(Page):
 
         # tutorial everyone is a participant so totals are taken from subgroups
         if player.round_number == 1 and C.treatment != 'OGL':
-            if player.player.id_in_group in [1,2]:
+            if player.id_in_group in [1,2]:
                 total_quantity = player.group.get_player_by_id(1).quantity + player.group.get_player_by_id(2).quantity
             else:
                 total_quantity = player.group.get_player_by_id(3).quantity + player.group.get_player_by_id(4).quantity
