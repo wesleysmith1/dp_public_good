@@ -3,7 +3,7 @@ import csv
 from decimal import Decimal
 import numpy as np
 
-from delegated_punishment.helpers import format_template_numbers
+from mechanisms.helpers import format_template_numbers
 
 def mean(l):
     return sum(l)/len(l)
