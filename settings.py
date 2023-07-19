@@ -8,6 +8,12 @@ SESSION_CONFIGS = [
         app_sequence=['mechanisms'],
         num_demo_participants=4,
     ),
+    dict(
+        name='wtp_survey',
+        display_name="wtp",
+        app_sequence=['wtp_survey'],
+        num_demo_participants=1,
+    ),
 ]
 
 # if you set a property in SESSION_CONFIG_DEFAULTS, it will be inherited by all configs
