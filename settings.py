@@ -7,6 +7,7 @@ SESSION_CONFIGS = [
         display_name="dp mechanisms",
         app_sequence=['welcome', 'mechanisms', 'wtp_survey', 'payment'],
         num_demo_participants=4,
+        grain_conversion=0.008333, # exchange rate 1/120
     ),
     dict(
         name='wtp_survey',
