@@ -223,8 +223,8 @@ class SurveyInitWait(WaitPage):
 
                 # add rebate for mgl participants
                 if p.mechanism_participant and C.treatment == 'MGL':
-                    p.starting_points += 0
-                    p.balance += 0
+                    p.starting_points += 650
+                    p.balance += 650
                 
 
 class StartModal(Page):

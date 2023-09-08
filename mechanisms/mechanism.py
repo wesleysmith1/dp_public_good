@@ -132,7 +132,7 @@ def calculate_utility(
         participant_costs = calculate_costs(N, gam, em, price, r=r, mechanism = mechanism)
         residual_costs = sum(em) * price - sum(participant_costs)
 
-        mgl_rebate = 0 if mechanism == "MGL" else 0
+        mgl_rebate = 0 if mechanism == "MGL" else 650
         
         # this is for csv only ========================
         nonparticipant_tax = np.repeat( a = residual_costs / (N - n) + mgl_rebate, repeats = N)
