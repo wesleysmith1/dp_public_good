@@ -22,13 +22,13 @@ class C(BaseConstants):
 
     # ========================================
 
-    # treatment = "OGL"
-    # N = 4
-    # n = 4
-
-    treatment = "MGL"
+    treatment = "OGL"
     N = 4
-    n = 2
+    n = 4
+
+    # treatment = "MGL"
+    # N = 4
+    # n = 2
 
     # treatment = "MPT"
     # N = 4
