@@ -7,6 +7,8 @@ SESSION_CONFIGS = [
         display_name="dp mechanisms",
         app_sequence=['mechanisms', 'wtp_survey', 'payment'],
         num_demo_participants=4,
+        showup_payment=7,
+        grain_conversion=.15,
     ),
     dict(
         name='wtp_survey',
@@ -31,7 +33,7 @@ SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00, participation_fee=0.00, doc=""
 )
 
-PARTICIPANT_FIELDS = ['group_id']
+PARTICIPANT_FIELDS = ['group_id', 'balances']
 SESSION_FIELDS = ['session_date', 'session_start']
 
 # ISO-639 code
