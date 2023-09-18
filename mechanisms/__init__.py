@@ -200,6 +200,13 @@ def creating_session(subsession: Subsession):
             player.starting_points = player.balance = incomes[income_index]
 
 # PAGES
+class AdvanceSlowest(Page):
+    
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+
 class SurveyInitWait(WaitPage):
     @staticmethod
     def after_all_players_arrive(group: Group):
@@ -694,6 +701,7 @@ class ResultsWaitPage(WaitPage):
 
 
 page_sequence = [
+        AdvanceSlowest,
         SurveyInitWait,
         Wait,
         StartModal,
