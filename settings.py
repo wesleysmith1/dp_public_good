@@ -8,7 +8,7 @@ SESSION_CONFIGS = [
         app_sequence=['mechanisms', 'wtp_survey', 'payment'],
         num_demo_participants=4,
         showup_payment=7,
-        grain_conversion=.15,
+        grain_conversion=0.008333,
     ),
     dict(
         name='wtp_survey',
